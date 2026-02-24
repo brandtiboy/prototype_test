@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taskly — Demo Prototype</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f7; color: #111; padding-bottom: 80px; /* room for tester bar */
+    }
+
+    /* ── Screens ── */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: block; }
+
+    /* ── Landing ── */
+    #s-landing {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 40px 24px;
+      color: white;
+    }
+    #s-landing.active { display: flex; }
+    .logo { font-size: 36px; font-weight: 800; margin-bottom: 12px; letter-spacing: -.5px; }
+    .tagline { font-size: 18px; opacity: .85; margin-bottom: 40px; max-width: 400px; line-height: 1.6; }
+    .nav-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      border: none; border-radius: 10px; padding: 13px 28px;
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: filter .15s;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn-white  { background: #fff; color: #6366f1; }
+    .btn-ghost  { background: rgba(255,255,255,.15); color: #fff; border: 1.5px solid rgba(255,255,255,.35); }
+    .btn-purple { background: #6366f1; color: #fff; }
+    .btn-sm     { padding: 9px 20px; font-size: 13px; }
+    .btn-outline { background: transparent; border: 1.5px solid #e5e7eb; color: #374151; }
+    .btn-danger { background: #fff0f0; color: #ef4444; border: 1.5px solid #fecaca; }
+
+    /* ── Sign up / Log in ── */
+    .auth-wrap {
+      max-width: 420px; margin: 60px auto; padding: 40px;
+      background: #fff; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,.08);
+    }
+    .auth-wrap h2 { margin: 0 0 6px; font-size: 24px; }
+    .auth-wrap p  { margin: 0 0 28px; color: #6b7280; font-size: 15px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    input[type=text], input[type=email], input[type=password] {
+      width: 100%; border: 1.5px solid #e5e7eb; border-radius: 9px;
+      padding: 11px 13px; font-size: 14px; margin-bottom: 16px; outline: none;
+      transition: border-color .15s; color: #111; background: #fafafa;
+    }
+    input:focus { border-color: #6366f1; background: #fff; }
+    .divider { text-align: center; color: #9ca3af; font-size: 13px; margin: 16px 0; position: relative; }
+    .divider::before, .divider::after {
+      content: ''; position: absolute; top: 50%; width: 44%; height: 1px; background: #e5e7eb;
+    }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+    .link-btn { background: none; border: none; color: #6366f1; font-size: 14px; cursor: pointer; font-weight: 600; padding: 0; }
+    .link-btn:hover { text-decoration: underline; }
+
+    /* ── Onboarding ── */
+    #s-onboard { background: #f9fafb; }
+    .onboard-wrap {
+      max-width: 560px; margin: 0 auto; padding: 60px 24px;
+    }
+    .onboard-step { font-size: 12px; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+    .onboard-wrap h2 { font-size: 28px; margin: 0 0 10px; }
+    .onboard-wrap p  { color: #6b7280; font-size: 16px; line-height: 1.65; margin: 0 0 32px; }
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 32px; }
+    .role-card {
+      border: 2px solid #e5e7eb; border-radius: 12px; padding: 20px;
+      cursor: pointer; transition: border-color .15s, background .15s;
+      text-align: center;
+    }
+    .role-card:hover { border-color: #a5b4fc; background: #f5f3ff; }
+    .role-card.selected { border-color: #6366f1; background: #eef2ff; }
+    .role-icon { font-size: 28px; margin-bottom: 8px; }
+    .role-name { font-size: 14px; font-weight: 600; color: #111; }
+
+    /* ── Dashboard ── */
+    #s-dash { background: #f5f5f7; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid #e5e7eb;
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-logo { font-size: 20px; font-weight: 800; color: #6366f1; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .user-menu { position: relative; }
+    .dropdown {
+      display: none; position: absolute; right: 0; top: 44px; z-index: 100;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.12); min-width: 180px; padding: 8px;
+    }
+    .dropdown.open { display: block; }
+    .dropdown-item {
+      display: block; width: 100%; text-align: left; background: none; border: none;
+      padding: 10px 14px; border-radius: 8px; font-size: 14px; color: #374151;
+      cursor: pointer; transition: background .1s;
+    }
+    .dropdown-item:hover { background: #f5f5f7; }
+    .dropdown-item.red { color: #ef4444; }
+
+    .dash-body { padding: 32px 24px; max-width: 900px; margin: 0 auto; }
+    .dash-greeting { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .dash-sub { color: #6b7280; font-size: 15px; margin-bottom: 32px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card { background: #fff; border-radius: 14px; padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .card-label { font-size: 12px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    .card-value { font-size: 32px; font-weight: 700; color: #111; }
+    .card-delta { font-size: 13px; color: #22c55e; margin-top: 4px; }
+
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .section-head h3 { font-size: 17px; font-weight: 700; margin: 0; }
+    .task-list { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 24px; }
+    .task-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px; border-bottom: 1px solid #f3f4f6; cursor: pointer;
+      transition: background .1s;
+    }
+    .task-item:last-child { border-bottom: none; }
+    .task-item:hover { background: #fafafa; }
+    .task-check {
+      width: 20px; height: 20px; border-radius: 50%; border: 2px solid #d1d5db;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: transparent; transition: all .15s;
+    }
+    .task-item.done .task-check { background: #22c55e; border-color: #22c55e; color: #fff; }
+    .task-item.done .task-text { text-decoration: line-through; color: #9ca3af; }
+    .task-text { flex: 1; font-size: 15px; }
+    .task-tag { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; }
+    .tag-design  { background: #fdf2f8; color: #db2777; }
+    .tag-dev     { background: #eff6ff; color: #3b82f6; }
+    .tag-review  { background: #fefce8; color: #ca8a04; }
+
+    /* ── Settings ── */
+    #s-settings { background: #f5f5f7; }
+    .settings-body { padding: 32px 24px; max-width: 600px; margin: 0 auto; }
+    .settings-body h2 { font-size: 24px; font-weight: 700; margin-bottom: 24px; }
+    .settings-card { background: #fff; border-radius: 14px; padding: 28px; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-bottom: 16px; }
+    .settings-card h3 { font-size: 15px; font-weight: 700; margin: 0 0 20px; }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 14px; font-weight: 500; }
+    .settings-desc { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+    .toggle {
+      width: 44px; height: 24px; border-radius: 12px; background: #e5e7eb;
+      cursor: pointer; position: relative; border: none; transition: background .2s;
+    }
+    .toggle.on { background: #6366f1; }
+    .toggle::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; border-radius: 50%; background: #fff;
+      transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .toggle.on::after { transform: translateX(20px); }
+    .danger-zone { border: 1.5px solid #fecaca !important; }
+
+    /* ── Toast ── */
+    #_toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(10px);
+      background: #1e1e2e; color: #fff; border-radius: 10px;
+      padding: 10px 20px; font-size: 14px; font-weight: 500;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      z-index: 9999; pointer-events: none; white-space: nowrap;
+    }
+    #_toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════ LANDING -->
+  <div id="s-landing" class="screen active">
+    <div class="logo">Taskly</div>
+    <p class="tagline">The simplest way to manage your team's work. No clutter, just clarity.</p>
+    <div class="nav-btns">
+      <button class="btn btn-white" onclick="show('s-signup')">Create free account</button>
+      <button class="btn btn-ghost" onclick="show('s-login')">Log in</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ SIGN UP -->
+  <div id="s-signup" class="screen">
+    <div class="auth-wrap">
+      <h2>Create your account</h2>
+      <p>Free forever. No credit card required.</p>
+      <label>Full name</label>
+      <input type="text" placeholder="Jane Smith" id="reg-name" />
+      <label>Work email</label>
+      <input type="email" placeholder="jane@company.com" id="reg-email" />
+      <label>Password</label>
+      <input type="password" placeholder="At least 8 characters" id="reg-pass" />
+      <button class="btn btn-purple" style="width:100%;margin-top:4px" onclick="doSignup()">Create account</button>
+      <div class="divider">or</div>
+      <p style="text-align:center;margin:0;font-size:14px;color:#6b7280">
+        Already have an account? <button class="link-btn" onclick="show('s-login')">Log in</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ LOG IN -->
+  <div id="s-login" class="screen">
+    <div class="auth-wrap">
+      <h2>Welcome back</h2>
+      <p>Log in to continue to Taskly.</p>
+      <label>Email</label>
+      <input type="email" placeholder="jane@company.com" />
+      <label>Password</label>
+      <input type="password" placeholder="Your password" />
+      <button class="btn btn-purple" style="width:100%;margin-top:4px" onclick="show('s-dash'); toast('Logged in!')">Log in</button>
+      <div class="divider">or</div>
+      <p style="text-align:center;margin:0;font-size:14px;color:#6b7280">
+        No account? <button class="link-btn" onclick="show('s-signup')">Sign up free</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ ONBOARDING -->
+  <div id="s-onboard" class="screen">
+    <div class="onboard-wrap">
+      <div class="onboard-step">Step 1 of 2</div>
+      <h2>What's your role?</h2>
+      <p>This helps us tailor Taskly to how you work.</p>
+      <div class="role-grid">
+        <div class="role-card" onclick="selectRole(this)">
+          <div class="role-icon">🎨</div>
+          <div class="role-name">Designer</div>
+        </div>
+        <div class="role-card" onclick="selectRole(this)">
+          <div class="role-icon">💻</div>
+          <div class="role-name">Developer</div>
+        </div>
+        <div class="role-card" onclick="selectRole(this)">
+          <div class="role-icon">📋</div>
+          <div class="role-name">Product Manager</div>
+        </div>
+        <div class="role-card" onclick="selectRole(this)">
+          <div class="role-icon">📣</div>
+          <div class="role-name">Marketer</div>
+        </div>
+      </div>
+      <button class="btn btn-purple" onclick="show('s-dash')">Continue →</button>
+      <button class="btn btn-outline btn-sm" style="margin-left:12px" onclick="show('s-dash')">Skip for now</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ DASHBOARD -->
+  <div id="s-dash" class="screen">
+    <div class="topbar">
+      <div class="topbar-logo">Taskly</div>
+      <div class="topbar-right">
+        <button class="btn btn-outline btn-sm" onclick="show('s-settings')">Settings</button>
+        <div class="user-menu">
+          <div class="avatar" id="avatar-btn" onclick="toggleMenu()">JS</div>
+          <div class="dropdown" id="user-dropdown">
+            <button class="dropdown-item" onclick="show('s-settings'); closeMenu()">⚙️ &nbsp;Settings</button>
+            <button class="dropdown-item" onclick="closeMenu()">👤 &nbsp;Profile</button>
+            <button class="dropdown-item red" onclick="show('s-landing'); closeMenu()">← &nbsp;Log out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-body">
+      <div class="dash-greeting">Good morning, Jane 👋</div>
+      <div class="dash-sub">You have 3 open tasks today.</div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Open tasks</div>
+          <div class="card-value">12</div>
+          <div class="card-delta">↑ 3 added this week</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Completed</div>
+          <div class="card-value">47</div>
+          <div class="card-delta" style="color:#6366f1">this month</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Team members</div>
+          <div class="card-value">5</div>
+          <div class="card-delta" style="color:#9ca3af">active today</div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h3>Today's tasks</h3>
+        <button class="btn btn-outline btn-sm">+ Add task</button>
+      </div>
+      <div class="task-list">
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check">✓</div>
+          <div class="task-text">Review homepage redesign mockups</div>
+          <span class="task-tag tag-design">Design</span>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check">✓</div>
+          <div class="task-text">Fix navigation bug on mobile</div>
+          <span class="task-tag tag-dev">Dev</span>
+        </div>
+        <div class="task-item done" onclick="toggleTask(this)">
+          <div class="task-check">✓</div>
+          <div class="task-text">Send weekly status update</div>
+          <span class="task-tag tag-review">Review</span>
+        </div>
+        <div class="task-item" onclick="toggleTask(this)">
+          <div class="task-check">✓</div>
+          <div class="task-text">Prepare user testing materials</div>
+          <span class="task-tag tag-design">Design</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ SETTINGS -->
+  <div id="s-settings" class="screen">
+    <div class="topbar">
+      <div class="topbar-logo">Taskly</div>
+      <div class="topbar-right">
+        <button class="btn btn-outline btn-sm" onclick="show('s-dash')">← Dashboard</button>
+      </div>
+    </div>
+    <div class="settings-body">
+      <h2>Settings</h2>
+
+      <div class="settings-card">
+        <h3>Profile</h3>
+        <label>Full name</label>
+        <input type="text" value="Jane Smith" />
+        <label>Email</label>
+        <input type="email" value="jane@company.com" />
+        <button class="btn btn-purple btn-sm" onclick="toast('Profile saved!')">Save changes</button>
+      </div>
+
+      <div class="settings-card">
+        <h3>Notifications</h3>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Email notifications</div>
+            <div class="settings-desc">Receive updates via email</div>
+          </div>
+          <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Browser push notifications</div>
+            <div class="settings-desc">Get notified in your browser</div>
+          </div>
+          <button class="toggle" onclick="this.classList.toggle('on')"></button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Weekly digest</div>
+            <div class="settings-desc">A summary sent every Monday</div>
+          </div>
+          <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+        </div>
+      </div>
+
+      <div class="settings-card danger-zone">
+        <h3>Danger zone</h3>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Delete account</div>
+            <div class="settings-desc">Permanently remove your account and all data</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="toast('Not available in prototype')">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="_toast"></div>
+
+  <!-- ══════════════════════════════════════════════════════ PROTOTYPE JS -->
+  <script>
+    function show(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function doSignup() {
+      const name = document.getElementById('reg-name').value.trim();
+      if (!name) { toast('Please enter your name'); return; }
+      show('s-onboard');
+    }
+
+    function toggleTask(el) {
+      el.classList.toggle('done');
+    }
+
+    function selectRole(el) {
+      document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function toggleMenu() {
+      document.getElementById('user-dropdown').classList.toggle('open');
+    }
+    function closeMenu() {
+      document.getElementById('user-dropdown').classList.remove('open');
+    }
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.user-menu')) closeMenu();
+    });
+
+    let _toastTimer;
+    function toast(msg) {
+      const el = document.getElementById('_toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+  </script>
+
+  <!-- ══════════════════════════════════════════════════════ TESTER -->
+  <script src="prototype-tester.js"></script>
+  <script>
+    PrototypeTester.init({
+      projectName: 'Taskly — Onboarding Flow',
+
+      tasks: [
+        {
+          id:          'signup',
+          title:       'Create an account',
+          description: 'You want to try Taskly. Sign up for a new free account.',
+          hint:        'You\'ve completed this task once you can see the main dashboard.',
+        },
+        {
+          id:          'find-settings',
+          title:       'Find Settings',
+          description: 'You want to turn off email notifications. Find where to do that.',
+          hint:        'Look for a Settings or account section.',
+        },
+        {
+          id:          'complete-task',
+          title:       'Mark a task as done',
+          description: 'Mark any task in your to-do list as completed.',
+        },
+      ],
+
+      // webhookUrl: 'YOUR_GOOGLE_SHEETS_WEBHOOK_HERE', // uncomment + add URL to send to Sheets
+      collectTesterInfo: true,
+      allowSkip:         true,
+      downloadResults:   true,
+    });
+  </script>
+
+</body>
+</html>
