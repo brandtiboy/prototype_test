@@ -85,6 +85,22 @@
 
     init(config) {
       Object.assign(PT._cfg, config);
+
+      // ── Auto-load Supabase credentials from localStorage if not hardcoded ──
+      // The results dashboard saves credentials under 'pt_supabase' when you
+      // connect. Any prototype on the same domain will pick them up automatically,
+      // so you don't need to paste keys into every HTML file.
+      if (!PT._cfg.supabaseUrl || PT._cfg.supabaseUrl.startsWith('YOUR_')) {
+        try {
+          const saved = JSON.parse(localStorage.getItem('pt_supabase') || 'null');
+          if (saved && saved.url && saved.key) {
+            PT._cfg.supabaseUrl    = saved.url;
+            PT._cfg.supabaseAnonKey = saved.key;
+            PT._cfg.downloadResults = false;
+          }
+        } catch (e) { /* localStorage not available */ }
+      }
+
       PT._s.sessionId    = PT._uid();
       PT._s.sessionStart = Date.now();
       PT._css();
