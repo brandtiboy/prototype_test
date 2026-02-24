@@ -406,19 +406,31 @@ async function sbFetch(path) {
   return res.json();
 }
 
+// ─── Persist credentials ──────────────────────────────────────────────────────
+const STORAGE_KEY = 'pt_supabase';
+
+function saveCredentials(url, key) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ url, key }));
+}
+
+function loadCredentials() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null; }
+  catch { return null; }
+}
+
+function clearCredentials() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
 // ─── Connect ──────────────────────────────────────────────────────────────────
-$id('connect-btn').onclick = async () => {
-  const url = $id('sb-url').value.trim().replace(/\/$/, '');
-  const key = $id('sb-key').value.trim();
+async function doConnect(url, key) {
   const errEl = $id('connect-error');
   errEl.style.display = 'none';
-
-  if (!url || !key) { errEl.textContent = 'Please fill in both fields.'; errEl.style.display = 'block'; return; }
-
   $id('connect-btn').textContent = 'Connecting…';
   try {
     _url = url; _key = key;
     _sessions = await sbFetch('/rest/v1/test_sessions?select=*&order=submitted_at.desc');
+    saveCredentials(url, key);
     $id('connect-screen').style.display = 'none';
     $id('app').style.display = 'block';
     renderSidebar();
@@ -427,20 +439,45 @@ $id('connect-btn').onclick = async () => {
     errEl.style.display = 'block';
     $id('connect-btn').textContent = 'Connect →';
     _url = ''; _key = '';
+    clearCredentials();
   }
+}
+
+$id('connect-btn').onclick = () => {
+  const url = $id('sb-url').value.trim().replace(/\/$/, '');
+  const key = $id('sb-key').value.trim();
+  if (!url || !key) {
+    const errEl = $id('connect-error');
+    errEl.textContent = 'Please fill in both fields.';
+    errEl.style.display = 'block';
+    return;
+  }
+  doConnect(url, key);
 };
 
 $id('disconnect-btn').onclick = () => {
   _url = ''; _key = ''; _sessions = []; _activeProject = null; _activeSession = null;
+  clearCredentials();
   $id('app').style.display = 'none';
   $id('connect-screen').style.display = 'block';
   $id('connect-btn').textContent = 'Connect →';
+  $id('sb-url').value = '';
+  $id('sb-key').value = '';
 };
 
 // Allow Enter key on inputs
 [$id('sb-url'), $id('sb-key')].forEach(el =>
   el.addEventListener('keydown', e => { if (e.key === 'Enter') $id('connect-btn').click(); })
 );
+
+// ─── Auto-connect on load if credentials are saved ────────────────────────────
+(function autoConnect() {
+  const saved = loadCredentials();
+  if (!saved) return;
+  $id('sb-url').value = saved.url;
+  $id('sb-key').value = saved.key;
+  doConnect(saved.url, saved.key);
+})();
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 function renderSidebar() {
